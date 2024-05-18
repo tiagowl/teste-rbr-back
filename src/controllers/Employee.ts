@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import mongoose from "mongoose";
+import mongoose, { MongooseError } from "mongoose";
 import employeeSchema from "../models/Employee";
+import { object, string } from "yup";
 
 export default class EmployeeController{
 
@@ -13,9 +14,9 @@ export default class EmployeeController{
 
 
 
-            res.json(employee)
+            res.status(200).json(employee)
         }catch(error){
-            res.json({error: error})
+            res.status(500).json({error: error})
         }
     }
 
@@ -28,7 +29,7 @@ export default class EmployeeController{
             res.status(200);
             res.end();
         }catch(error){
-            res.json({error: error})
+            res.status(500).json({error: error})
         }
     }
 
@@ -37,12 +38,27 @@ export default class EmployeeController{
 
         const employees = mongoose.model("Employee", employeeSchema);
 
+        let employeeSchemaObj = object({
+            name: string().required("Nome não pode estar vazio.").typeError("Nome não pode ser um numero"),
+            role: string().required("Cargo não pode estar vazio.").typeError("Cargo não pode ser um numero"),
+            department: string().required("Departamento não pode estar vazio.").typeError("Departamento não pode ser um numero"),
+            admissionDate: string().required("Data de admissão não pode estar vazia")
+          });
+
+          try{
+
+            await employeeSchemaObj.validate(req.body);
+
+          }catch(error: any){
+            return res.status(400).json({error: error.errors})
+          }
+
         try{
             const updated = await employees.findByIdAndUpdate(req.params.id, req.body);
 
-            res.json(updated);
+            res.status(201).json(updated);
         }catch(error){
-            res.json({error: error});
+            res.status(500).json({error: error});
         }
 
     }
@@ -70,7 +86,7 @@ export default class EmployeeController{
 
             res.status(200).json(employeesData);
         }catch(error){
-            res.status(300).json({error: error});
+            res.status(500).json({error: error});
         }
 
     }
@@ -78,6 +94,20 @@ export default class EmployeeController{
     static async store(req: Request, res: Response){
         
         const {name, role, department} = req.body;
+
+        let employeeSchemaObj = object({
+            name: string().required("Nome não pode estar vazio.").typeError("Nome não pode ser um numero"),
+            role: string().required("Cargo não pode estar vazio.").typeError("Cargo não pode ser um numero"),
+            department: string().required("Departamento não pode estar vazio.").typeError("Departamento não pode ser um numero"),
+          });
+
+          try{
+
+            await employeeSchemaObj.validate(req.body);
+
+          }catch(error: any){
+            return res.status(400).json({error: error.errors})
+          }
 
         const Employee = mongoose.model("Employee", employeeSchema);
 
@@ -89,11 +119,13 @@ export default class EmployeeController{
             admissionDate: new Date()
         })
 
+
+
         try{
             await employee.save();
-            res.end();
+            res.status(201).end();
         }catch(error){
-            res.status(300).json({erro: error});
+            res.status(500).json({erro: error});
         }
 
     }
